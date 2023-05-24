@@ -4017,17 +4017,23 @@
 <a href="#4017" id="4017">4017</a>
 <a href="#4018" id="4018">4018</a>
 <a href="#4019" id="4019">4019</a>
+<a href="#4020" id="4020">4020</a>
+<a href="#4021" id="4021">4021</a>
+<a href="#4022" id="4022">4022</a>
+<a href="#4023" id="4023">4023</a>
+<a href="#4024" id="4024">4024</a>
+<a href="#4025" id="4025">4025</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::binemit::{Addend, Reloc};
 <span class="kw">use </span><span class="kw">crate</span>::ir::immediates::{Ieee32, Ieee64};
 <span class="kw">use </span><span class="kw">crate</span>::ir::TrapCode;
 <span class="kw">use </span><span class="kw">crate</span>::ir::{KnownSymbol, LibCall};
-<span class="kw">use </span><span class="kw">crate</span>::isa::x64::encoding::evex::{EvexInstruction, EvexVectorLength};
+<span class="kw">use </span><span class="kw">crate</span>::isa::x64::encoding::evex::{EvexInstruction, EvexVectorLength, RegisterOrAmode};
 <span class="kw">use </span><span class="kw">crate</span>::isa::x64::encoding::rex::{
     emit_simm, emit_std_enc_enc, emit_std_enc_mem, emit_std_reg_mem, emit_std_reg_reg, int_reg_enc,
     low8_will_sign_extend_to_32, low8_will_sign_extend_to_64, reg_enc, LegacyPrefixes, OpcodeMap,
     RexFlags,
 };
-<span class="kw">use </span><span class="kw">crate</span>::isa::x64::encoding::vex::{RegisterOrAmode, VexInstruction, VexVectorLength};
+<span class="kw">use </span><span class="kw">crate</span>::isa::x64::encoding::vex::{VexInstruction, VexVectorLength};
 <span class="kw">use </span><span class="kw">crate</span>::isa::x64::inst::args::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::isa::x64::inst::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::machinst::{inst_common, MachBuffer, MachInstEmit, MachLabel, Reg, Writable};
@@ -5929,7 +5935,12 @@
 
         Inst::XmmUnaryRmREvex { op, src, dst } =&gt; {
             <span class="kw">let </span>dst = allocs.next(dst.to_reg().to_reg());
-            <span class="kw">let </span>src = src.clone().to_reg_mem().with_allocs(allocs);
+            <span class="kw">let </span>src = <span class="kw">match </span>src.clone().to_reg_mem().with_allocs(allocs) {
+                RegMem::Reg { reg } =&gt; {
+                    RegisterOrAmode::Register(reg.to_real_reg().unwrap().hw_enc().into())
+                }
+                RegMem::Mem { addr } =&gt; RegisterOrAmode::Amode(addr.finalize(state, sink)),
+            };
 
             <span class="kw">let </span>(prefix, map, w, opcode) = <span class="kw">match </span>op {
                 Avx512Opcode::Vcvtudq2ps =&gt; (LegacyPrefixes::_F2, OpcodeMap::_0F, <span class="bool-val">false</span>, <span class="number">0x7a</span>),
@@ -5937,18 +5948,16 @@
                 Avx512Opcode::Vpopcntb =&gt; (LegacyPrefixes::_66, OpcodeMap::_0F38, <span class="bool-val">false</span>, <span class="number">0x54</span>),
                 <span class="kw">_ </span>=&gt; <span class="macro">unimplemented!</span>(<span class="string">&quot;Opcode {:?} not implemented&quot;</span>, op),
             };
-            <span class="kw">match </span>src {
-                RegMem::Reg { reg: src } =&gt; EvexInstruction::new()
-                    .length(EvexVectorLength::V128)
-                    .prefix(prefix)
-                    .map(map)
-                    .w(w)
-                    .opcode(opcode)
-                    .reg(dst.to_real_reg().unwrap().hw_enc())
-                    .rm(src.to_real_reg().unwrap().hw_enc())
-                    .encode(sink),
-                <span class="kw">_ </span>=&gt; <span class="macro">todo!</span>(),
-            };
+            EvexInstruction::new()
+                .length(EvexVectorLength::V128)
+                .prefix(prefix)
+                .map(map)
+                .w(w)
+                .opcode(opcode)
+                .tuple_type(op.tuple_type())
+                .reg(dst.to_real_reg().unwrap().hw_enc())
+                .rm(src)
+                .encode(sink);
         }
 
         Inst::XmmRmR {
@@ -6763,26 +6772,29 @@
                 <span class="kw">let </span>src3 = allocs.next(src3.to_reg());
                 <span class="macro">debug_assert_eq!</span>(src3, dst);
             }
-            <span class="kw">let </span>src1 = src1.clone().to_reg_mem().with_allocs(allocs);
+            <span class="kw">let </span>src1 = <span class="kw">match </span>src1.clone().to_reg_mem().with_allocs(allocs) {
+                RegMem::Reg { reg } =&gt; {
+                    RegisterOrAmode::Register(reg.to_real_reg().unwrap().hw_enc().into())
+                }
+                RegMem::Mem { addr } =&gt; RegisterOrAmode::Amode(addr.finalize(state, sink)),
+            };
 
             <span class="kw">let </span>(w, opcode) = <span class="kw">match </span>op {
                 Avx512Opcode::Vpermi2b =&gt; (<span class="bool-val">false</span>, <span class="number">0x75</span>),
                 Avx512Opcode::Vpmullq =&gt; (<span class="bool-val">true</span>, <span class="number">0x40</span>),
                 <span class="kw">_ </span>=&gt; <span class="macro">unimplemented!</span>(<span class="string">&quot;Opcode {:?} not implemented&quot;</span>, op),
             };
-            <span class="kw">match </span>src1 {
-                RegMem::Reg { reg: src } =&gt; EvexInstruction::new()
-                    .length(EvexVectorLength::V128)
-                    .prefix(LegacyPrefixes::_66)
-                    .map(OpcodeMap::_0F38)
-                    .w(w)
-                    .opcode(opcode)
-                    .reg(dst.to_real_reg().unwrap().hw_enc())
-                    .rm(src.to_real_reg().unwrap().hw_enc())
-                    .vvvvv(src2.to_real_reg().unwrap().hw_enc())
-                    .encode(sink),
-                <span class="kw">_ </span>=&gt; <span class="macro">todo!</span>(),
-            };
+            EvexInstruction::new()
+                .length(EvexVectorLength::V128)
+                .prefix(LegacyPrefixes::_66)
+                .map(OpcodeMap::_0F38)
+                .w(w)
+                .opcode(opcode)
+                .tuple_type(op.tuple_type())
+                .reg(dst.to_real_reg().unwrap().hw_enc())
+                .rm(src1)
+                .vvvvv(src2.to_real_reg().unwrap().hw_enc())
+                .encode(sink);
         }
 
         Inst::XmmMinMaxSeq {

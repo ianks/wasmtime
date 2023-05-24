@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["RegisterOrAmode","VexVectorLength"],"struct":["VexInstruction"]};
+window.SIDEBAR_ITEMS = {"enum":["VexVectorLength"],"struct":["VexInstruction"]};
