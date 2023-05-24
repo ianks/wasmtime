@@ -1927,9 +1927,17 @@
 }
 
 <span class="kw">impl</span>&lt;T: WasiPreview1View + <span class="question-mark">?</span>Sized&gt; Transcation&lt;<span class="lifetime">&#39;_</span>, T&gt; {
-    <span class="kw">fn </span>get_descriptor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Descriptor&gt; {
+    <span class="doccomment">/// Borrows [`Descriptor`] corresponding to `fd`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`types::Errno::Badf`] if no [`Descriptor`] is found
+    </span><span class="kw">fn </span>get_descriptor(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; ErrnoResult&lt;<span class="kw-2">&amp;</span>Descriptor&gt; {
         <span class="kw">let </span>fd = fd.into();
-        <span class="self">self</span>.descriptors.get_mut().get(<span class="kw-2">&amp;</span>fd)
+        <span class="self">self</span>.descriptors
+            .get_mut()
+            .get(<span class="kw-2">&amp;</span>fd)
+            .ok_or(types::Errno::Badf)
     }
 
     <span class="doccomment">/// Borrows [`File`] corresponding to `fd`
@@ -1959,7 +1967,7 @@
     ///
     /// # Errors
     ///
-    /// Returns `types::Errno::Spipe` if a descriptor corresponds to stdio
+    /// Returns [`types::Errno::Spipe`] if the descriptor corresponds to stdio
     </span><span class="kw">fn </span>get_seekable(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; ErrnoResult&lt;<span class="kw-2">&amp;</span>File&gt; {
         <span class="kw">let </span>fd = fd.into();
         <span class="kw">match </span><span class="self">self</span>.descriptors.get_mut().get(<span class="kw-2">&amp;</span>fd) {
@@ -1976,13 +1984,11 @@
 
     <span class="doccomment">/// Returns [`wasi::filesystem::Descriptor`] corresponding to `fd`
     </span><span class="kw">fn </span>get_fd(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; ErrnoResult&lt;wasi::filesystem::Descriptor&gt; {
-        <span class="kw">let </span>fd = fd.into();
-        <span class="kw">match </span><span class="self">self</span>.descriptors.get_mut().get(<span class="kw-2">&amp;</span>fd) {
-            <span class="prelude-val">Some</span>(Descriptor::File(File { fd, .. })) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>fd),
-            <span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((fd, <span class="kw">_</span>))) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>fd),
-            <span class="prelude-val">Some</span>(Descriptor::Stdin(stream)) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>stream),
-            <span class="prelude-val">Some</span>(Descriptor::Stdout(stream) | Descriptor::Stderr(stream)) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>stream),
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(types::Errno::Badf),
+        <span class="kw">match </span><span class="self">self</span>.get_descriptor(fd)<span class="question-mark">? </span>{
+            Descriptor::File(File { fd, .. }) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>fd),
+            Descriptor::PreopenDirectory((fd, <span class="kw">_</span>)) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>fd),
+            Descriptor::Stdin(stream) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>stream),
+            Descriptor::Stdout(stream) | Descriptor::Stderr(stream) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>stream),
         }
     }
 
@@ -2580,8 +2586,8 @@
     /// NOTE: This returns similar flags to `fsync(fd, F_GETFL)` in POSIX, as well as additional fields.
     </span><span class="attr">#[instrument(skip(<span class="self">self</span>))]
     </span><span class="kw">async fn </span>fd_fdstat_get(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; <span class="prelude-ty">Result</span>&lt;types::Fdstat, types::Error&gt; {
-        <span class="kw">let </span>(fd, blocking, append) = <span class="kw">match </span><span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd) {
-            <span class="prelude-val">Some</span>(Descriptor::Stdin(..)) =&gt; {
+        <span class="kw">let </span>(fd, blocking, append) = <span class="kw">match </span><span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">? </span>{
+            Descriptor::Stdin(..) =&gt; {
                 <span class="kw">let </span>fs_rights_base = types::Rights::FD_READ;
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(types::Fdstat {
                     fs_filetype: types::Filetype::CharacterDevice,
@@ -2590,7 +2596,7 @@
                     fs_rights_inheriting: fs_rights_base,
                 });
             }
-            <span class="prelude-val">Some</span>(Descriptor::Stdout(..) | Descriptor::Stderr(..)) =&gt; {
+            Descriptor::Stdout(..) | Descriptor::Stderr(..) =&gt; {
                 <span class="kw">let </span>fs_rights_base = types::Rights::FD_WRITE;
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(types::Fdstat {
                     fs_filetype: types::Filetype::CharacterDevice,
@@ -2599,14 +2605,13 @@
                     fs_rights_inheriting: fs_rights_base,
                 });
             }
-            <span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((fd, <span class="kw">_</span>))) =&gt; (<span class="kw-2">*</span>fd, <span class="bool-val">false</span>, <span class="bool-val">false</span>),
-            <span class="prelude-val">Some</span>(Descriptor::File(File {
+            Descriptor::PreopenDirectory((fd, <span class="kw">_</span>)) =&gt; (<span class="kw-2">*</span>fd, <span class="bool-val">false</span>, <span class="bool-val">false</span>),
+            Descriptor::File(File {
                 fd,
                 blocking,
                 append,
                 ..
-            })) =&gt; (<span class="kw-2">*</span>fd, <span class="kw-2">*</span>blocking, <span class="kw-2">*</span>append),
-            <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(types::Errno::Badf.into()),
+            }) =&gt; (<span class="kw-2">*</span>fd, <span class="kw-2">*</span>blocking, <span class="kw-2">*</span>append),
         };
 
         <span class="comment">// TODO: use `try_join!` to poll both futures async, unfortunately that is not currently
@@ -2682,8 +2687,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Adjust the rights associated with a file descriptor.
-    /// This can only be used to remove rights, and returns `errno::notcapable` if called in a way that would attempt to add rights
+    <span class="doccomment">/// Does not do anything if `fd` corresponds to a valid descriptor and returns `[types::Errno::Badf]` error otherwise.
     </span><span class="attr">#[instrument(skip(<span class="self">self</span>))]
     </span><span class="kw">async fn </span>fd_fdstat_set_rights(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -2691,15 +2695,16 @@
         fs_rights_base: types::Rights,
         fs_rights_inheriting: types::Rights,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), types::Error&gt; {
-        <span class="macro">todo!</span>()
+        <span class="self">self</span>.get_fd(fd).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Return the attributes of an open file.
     </span><span class="attr">#[instrument(skip(<span class="self">self</span>))]
     </span><span class="kw">async fn </span>fd_filestat_get(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; <span class="prelude-ty">Result</span>&lt;types::Filestat, types::Error&gt; {
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">?</span>.clone();
         <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::Stdin(..) | Descriptor::Stdout(..) | Descriptor::Stderr(..)) =&gt; {
+            Descriptor::Stdin(..) | Descriptor::Stdout(..) | Descriptor::Stderr(..) =&gt; {
                 <span class="prelude-val">Ok</span>(types::Filestat {
                     dev: <span class="number">0</span>,
                     ino: <span class="number">0</span>,
@@ -2711,7 +2716,7 @@
                     ctim: <span class="number">0</span>,
                 })
             }
-            <span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((fd, <span class="kw">_</span>)) | Descriptor::File(File { fd, .. })) =&gt; {
+            Descriptor::PreopenDirectory((fd, <span class="kw">_</span>)) | Descriptor::File(File { fd, .. }) =&gt; {
                 <span class="kw">let </span>wasi::filesystem::DescriptorStat {
                     device: dev,
                     inode: ino,
@@ -2741,7 +2746,6 @@
                     ctim,
                 })
             }
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(types::Errno::Badf.into()),
         }
     }
 
@@ -2798,14 +2802,14 @@
         fd: types::Fd,
         iovs: <span class="kw-2">&amp;</span>types::IovecArray&lt;<span class="lifetime">&#39;a</span>&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;types::Size, types::Error&gt; {
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">?</span>.clone();
         <span class="kw">let </span>(<span class="kw-2">mut </span>buf, read, end) = <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::File(File {
+            Descriptor::File(File {
                 fd,
                 blocking,
                 position,
                 ..
-            })) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
+            }) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_iovec(iovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2831,7 +2835,7 @@
 
                 (buf, read, end)
             }
-            <span class="prelude-val">Some</span>(Descriptor::Stdin(stream)) =&gt; {
+            Descriptor::Stdin(stream) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_iovec(iovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2867,9 +2871,9 @@
         iovs: <span class="kw-2">&amp;</span>types::IovecArray&lt;<span class="lifetime">&#39;a</span>&gt;,
         offset: types::Filesize,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;types::Size, types::Error&gt; {
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">?</span>.clone();
         <span class="kw">let </span>(<span class="kw-2">mut </span>buf, read, end) = <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::File(File { fd, blocking, .. })) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
+            Descriptor::File(File { fd, blocking, .. }) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_iovec(iovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2890,7 +2894,7 @@
 
                 (buf, read, end)
             }
-            <span class="prelude-val">Some</span>(Descriptor::Stdin(..)) =&gt; {
+            Descriptor::Stdin(..) =&gt; {
                 <span class="comment">// NOTE: legacy implementation returns SPIPE here
                 </span><span class="kw">return </span><span class="prelude-val">Err</span>(types::Errno::Spipe.into());
             }
@@ -2916,14 +2920,14 @@
         fd: types::Fd,
         ciovs: <span class="kw-2">&amp;</span>types::CiovecArray&lt;<span class="lifetime">&#39;a</span>&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;types::Size, types::Error&gt; {
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">?</span>.clone();
         <span class="kw">let </span>n = <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::File(File {
+            Descriptor::File(File {
                 fd,
                 blocking,
                 append,
                 position,
-            })) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
+            }) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_ciovec(ciovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2956,7 +2960,7 @@
                 }
                 n
             }
-            <span class="prelude-val">Some</span>(Descriptor::Stdout(stream) | Descriptor::Stderr(stream)) =&gt; {
+            Descriptor::Stdout(stream) | Descriptor::Stderr(stream) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_ciovec(ciovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2980,9 +2984,9 @@
         ciovs: <span class="kw-2">&amp;</span>types::CiovecArray&lt;<span class="lifetime">&#39;a</span>&gt;,
         offset: types::Filesize,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;types::Size, types::Error&gt; {
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">?</span>.clone();
         <span class="kw">let </span>n = <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::File(File { fd, blocking, .. })) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
+            Descriptor::File(File { fd, blocking, .. }) <span class="kw">if </span><span class="self">self</span>.table().is_file(fd) =&gt; {
                 <span class="kw">let </span><span class="prelude-val">Some</span>(buf) = first_non_empty_ciovec(ciovs)<span class="question-mark">? </span><span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
                 };
@@ -2999,7 +3003,7 @@
                 .<span class="kw">await
                 </span>.map_err(|<span class="kw">_</span>| types::Errno::Io)<span class="question-mark">?
             </span>}
-            <span class="prelude-val">Some</span>(Descriptor::Stdout(..) | Descriptor::Stderr(..)) =&gt; {
+            Descriptor::Stdout(..) | Descriptor::Stderr(..) =&gt; {
                 <span class="comment">// NOTE: legacy implementation returns SPIPE here
                 </span><span class="kw">return </span><span class="prelude-val">Err</span>(types::Errno::Spipe.into());
             }
@@ -3013,9 +3017,7 @@
     <span class="doccomment">/// Return a description of the given preopened file descriptor.
     </span><span class="attr">#[instrument(skip(<span class="self">self</span>))]
     </span><span class="kw">async fn </span>fd_prestat_get(<span class="kw-2">&amp;mut </span><span class="self">self</span>, fd: types::Fd) -&gt; <span class="prelude-ty">Result</span>&lt;types::Prestat, types::Error&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((<span class="kw">_</span>, p))) =
-            <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)
-        {
+        <span class="kw">if let </span>Descriptor::PreopenDirectory((<span class="kw">_</span>, p)) = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">? </span>{
             <span class="kw">let </span>pr_name_len = p.len().try_into().or(<span class="prelude-val">Err</span>(types::Errno::Overflow))<span class="question-mark">?</span>;
             <span class="kw">return </span><span class="prelude-val">Ok</span>(types::Prestat::Dir(types::PrestatDir { pr_name_len }));
         }
@@ -3031,9 +3033,7 @@
         path_max_len: types::Size,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), types::Error&gt; {
         <span class="kw">let </span>path_max_len = path_max_len.try_into().or(<span class="prelude-val">Err</span>(types::Errno::Overflow))<span class="question-mark">?</span>;
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((<span class="kw">_</span>, p))) =
-            <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)
-        {
+        <span class="kw">if let </span>Descriptor::PreopenDirectory((<span class="kw">_</span>, p)) = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(fd)<span class="question-mark">? </span>{
             <span class="kw">if </span>p.len() &gt; path_max_len {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(types::Errno::Nametoolong.into());
             }
@@ -3269,11 +3269,11 @@
             flags |= wasi::filesystem::DescriptorFlags::REQUESTED_WRITE_SYNC;
         }
 
-        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(dirfd).cloned();
+        <span class="kw">let </span>desc = <span class="self">self</span>.transact().<span class="kw">await</span><span class="question-mark">?</span>.get_descriptor(dirfd)<span class="question-mark">?</span>.clone();
         <span class="kw">let </span>dirfd = <span class="kw">match </span>desc {
-            <span class="prelude-val">Some</span>(Descriptor::PreopenDirectory((fd, <span class="kw">_</span>))) =&gt; fd,
-            <span class="prelude-val">Some</span>(Descriptor::File(File { fd, .. })) <span class="kw">if </span><span class="self">self</span>.table().is_dir(fd) =&gt; fd,
-            <span class="prelude-val">Some</span>(Descriptor::File(File { fd, .. })) <span class="kw">if </span>!<span class="self">self</span>.table().is_dir(fd) =&gt; {
+            Descriptor::PreopenDirectory((fd, <span class="kw">_</span>)) =&gt; fd,
+            Descriptor::File(File { fd, .. }) <span class="kw">if </span><span class="self">self</span>.table().is_dir(fd) =&gt; fd,
+            Descriptor::File(File { fd, .. }) <span class="kw">if </span>!<span class="self">self</span>.table().is_dir(fd) =&gt; {
                 <span class="comment">// NOTE: Unlike most other methods, legacy implementation returns `NOTDIR` here
                 </span><span class="kw">return </span><span class="prelude-val">Err</span>(types::Errno::Notdir.into());
             }

@@ -2380,6 +2380,8 @@
 <a href="#2380" id="2380">2380</a>
 <a href="#2381" id="2381">2381</a>
 <a href="#2382" id="2382">2382</a>
+<a href="#2383" id="2383">2383</a>
+<a href="#2384" id="2384">2384</a>
 </pre><pre class="rust"><code><span class="attr">#![allow(unused_variables)] </span><span class="comment">// TODO: remove this when more things are implemented
 
 </span><span class="kw">use </span><span class="kw">crate</span>::bindings::{
@@ -2939,15 +2941,17 @@
     })
 }
 
-<span class="doccomment">/// Adjust the rights associated with a file descriptor.
-/// This can only be used to remove rights, and returns `errno::notcapable` if called in a way that would attempt to add rights
+<span class="doccomment">/// Does not do anything if `fd` corresponds to a valid descriptor and returns [`wasi::ERRNO_BADF`] otherwise.
 </span><span class="attr">#[no_mangle]
 </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>fd_fdstat_set_rights(
     fd: Fd,
     fs_rights_base: Rights,
     fs_rights_inheriting: Rights,
 ) -&gt; Errno {
-    <span class="macro">unreachable!</span>()
+    State::with(|state| <span class="kw">match </span>state.descriptors().get(fd)<span class="question-mark">? </span>{
+        Descriptor::Streams(..) =&gt; <span class="prelude-val">Ok</span>(()),
+        Descriptor::Closed(..) =&gt; <span class="prelude-val">Err</span>(wasi::ERRNO_BADF),
+    })
 }
 
 <span class="doccomment">/// Return the attributes of an open file.
