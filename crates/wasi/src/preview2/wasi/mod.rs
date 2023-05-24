@@ -15,7 +15,6 @@ wasmtime::component::bindgen!({
       import exit: wasi-cli-base.exit
     ",
     tracing: true,
-    async: true,
     trappable_error_type: {
         "filesystem"::"error-code": Error,
         "streams"::"stream-error": Error,

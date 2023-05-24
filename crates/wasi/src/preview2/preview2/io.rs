@@ -28,25 +28,20 @@ impl From<TableError> for streams::Error {
     }
 }
 
-#[async_trait::async_trait]
 impl<T: WasiView> streams::Host for T {
-    async fn drop_input_stream(&mut self, stream: InputStream) -> anyhow::Result<()> {
+    fn drop_input_stream(&mut self, stream: InputStream) -> anyhow::Result<()> {
         self.table_mut()
             .delete::<Box<dyn crate::preview2::InputStream>>(stream)?;
         Ok(())
     }
 
-    async fn drop_output_stream(&mut self, stream: OutputStream) -> anyhow::Result<()> {
+    fn drop_output_stream(&mut self, stream: OutputStream) -> anyhow::Result<()> {
         self.table_mut()
             .delete::<Box<dyn crate::preview2::OutputStream>>(stream)?;
         Ok(())
     }
 
-    async fn read(
-        &mut self,
-        stream: InputStream,
-        len: u64,
-    ) -> Result<(Vec<u8>, bool), streams::Error> {
+    fn read(&mut self, stream: InputStream, len: u64) -> Result<(Vec<u8>, bool), streams::Error> {
         let s: &mut Box<dyn crate::preview2::InputStream> =
             self.table_mut().get_input_stream_mut(stream)?;
 
@@ -63,7 +58,7 @@ impl<T: WasiView> streams::Host for T {
         Ok((buffer, end))
     }
 
-    async fn blocking_read(
+    fn blocking_read(
         &mut self,
         stream: InputStream,
         len: u64,
@@ -72,7 +67,7 @@ impl<T: WasiView> streams::Host for T {
         self.read(stream, len).await
     }
 
-    async fn write(&mut self, stream: OutputStream, bytes: Vec<u8>) -> Result<u64, streams::Error> {
+    fn write(&mut self, stream: OutputStream, bytes: Vec<u8>) -> Result<u64, streams::Error> {
         let s: &mut Box<dyn crate::preview2::OutputStream> =
             self.table_mut().get_output_stream_mut(stream)?;
 
@@ -81,7 +76,7 @@ impl<T: WasiView> streams::Host for T {
         Ok(u64::try_from(bytes_written).unwrap())
     }
 
-    async fn blocking_write(
+    fn blocking_write(
         &mut self,
         stream: OutputStream,
         bytes: Vec<u8>,
@@ -90,7 +85,7 @@ impl<T: WasiView> streams::Host for T {
         self.write(stream, bytes).await
     }
 
-    async fn skip(&mut self, stream: InputStream, len: u64) -> Result<(u64, bool), streams::Error> {
+    fn skip(&mut self, stream: InputStream, len: u64) -> Result<(u64, bool), streams::Error> {
         let s: &mut Box<dyn crate::preview2::InputStream> =
             self.table_mut().get_input_stream_mut(stream)?;
 
@@ -99,7 +94,7 @@ impl<T: WasiView> streams::Host for T {
         Ok((bytes_skipped, end))
     }
 
-    async fn blocking_skip(
+    fn blocking_skip(
         &mut self,
         stream: InputStream,
         len: u64,
@@ -108,11 +103,7 @@ impl<T: WasiView> streams::Host for T {
         self.skip(stream, len).await
     }
 
-    async fn write_zeroes(
-        &mut self,
-        stream: OutputStream,
-        len: u64,
-    ) -> Result<u64, streams::Error> {
+    fn write_zeroes(&mut self, stream: OutputStream, len: u64) -> Result<u64, streams::Error> {
         let s: &mut Box<dyn crate::preview2::OutputStream> =
             self.table_mut().get_output_stream_mut(stream)?;
 
@@ -121,7 +112,7 @@ impl<T: WasiView> streams::Host for T {
         Ok(bytes_written)
     }
 
-    async fn blocking_write_zeroes(
+    fn blocking_write_zeroes(
         &mut self,
         stream: OutputStream,
         len: u64,
@@ -130,7 +121,7 @@ impl<T: WasiView> streams::Host for T {
         self.write_zeroes(stream, len).await
     }
 
-    async fn splice(
+    fn splice(
         &mut self,
         _src: InputStream,
         _dst: OutputStream,
@@ -159,7 +150,7 @@ impl<T: WasiView> streams::Host for T {
         todo!()
     }
 
-    async fn blocking_splice(
+    fn blocking_splice(
         &mut self,
         src: InputStream,
         dst: OutputStream,
@@ -169,11 +160,7 @@ impl<T: WasiView> streams::Host for T {
         self.splice(src, dst, len).await
     }
 
-    async fn forward(
-        &mut self,
-        _src: InputStream,
-        _dst: OutputStream,
-    ) -> Result<u64, streams::Error> {
+    fn forward(&mut self, _src: InputStream, _dst: OutputStream) -> Result<u64, streams::Error> {
         // TODO: We can't get two streams at the same time because they both
         // carry the exclusive lifetime of `ctx`. When [`get_many_mut`] is
         // stabilized, that could allow us to add a `get_many_stream_mut` or
@@ -198,16 +185,13 @@ impl<T: WasiView> streams::Host for T {
         todo!()
     }
 
-    async fn subscribe_to_input_stream(&mut self, stream: InputStream) -> anyhow::Result<Pollable> {
+    fn subscribe_to_input_stream(&mut self, stream: InputStream) -> anyhow::Result<Pollable> {
         Ok(self
             .table_mut()
             .push(Box::new(PollableEntry::Read(stream)))?)
     }
 
-    async fn subscribe_to_output_stream(
-        &mut self,
-        stream: OutputStream,
-    ) -> anyhow::Result<Pollable> {
+    fn subscribe_to_output_stream(&mut self, stream: OutputStream) -> anyhow::Result<Pollable> {
         Ok(self
             .table_mut()
             .push(Box::new(PollableEntry::Write(stream)))?)

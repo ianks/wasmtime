@@ -28,14 +28,13 @@ pub(crate) enum PollableEntry {
 // sharing between worlds, but I want to avoid the huge whitespace diff on
 // this PR.
 
-#[async_trait::async_trait]
 impl<T: WasiView> wasi::poll::Host for T {
-    async fn drop_pollable(&mut self, pollable: Pollable) -> anyhow::Result<()> {
+    fn drop_pollable(&mut self, pollable: Pollable) -> anyhow::Result<()> {
         self.table_mut().delete::<PollableEntry>(pollable)?;
         Ok(())
     }
 
-    async fn poll_oneoff(&mut self, futures: Vec<Pollable>) -> anyhow::Result<Vec<u8>> {
+    fn poll_oneoff(&mut self, futures: Vec<Pollable>) -> anyhow::Result<Vec<u8>> {
         use crate::preview2::sched::{sync::SyncSched, Poll, Userdata, WasiSched};
 
         // Convert `futures` into `Poll` subscriptions.

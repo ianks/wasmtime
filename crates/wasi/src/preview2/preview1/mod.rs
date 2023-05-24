@@ -51,7 +51,6 @@ pub fn add_to_linker<
 wiggle::from_witx!({
     witx: ["$CARGO_MANIFEST_DIR/witx/wasi_snapshot_preview1.witx"],
     errors: { errno => trappable Error },
-    async: *,
 });
 
 impl wiggle::GuestErrorType for types::Errno {
@@ -103,7 +102,6 @@ fn write_byte<'a>(ptr: impl Borrow<GuestPtr<'a, u8>>, byte: u8) -> ErrnoResult<G
 // Implement the WasiSnapshotPreview1 trait using only the traits that are
 // required for T, i.e., in terms of the preview 2 wit interface, and state
 // stored in the WasiPreview1Adapter struct.
-#[wiggle::async_trait]
 impl<
         T: WasiPreview1View
             + wasi::environment::Host
@@ -117,13 +115,12 @@ impl<
             + wasi::wall_clock::Host,
     > wasi_snapshot_preview1::WasiSnapshotPreview1 for T
 {
-    async fn args_get<'b>(
+    fn args_get<'b>(
         &mut self,
         argv: &GuestPtr<'b, GuestPtr<'b, u8>>,
         argv_buf: &GuestPtr<'b, u8>,
     ) -> Result<(), types::Error> {
         self.get_arguments()
-            .await
             .context("failed to call `get-arguments`")
             .map_err(types::Error::trap)?
             .into_iter()
@@ -144,10 +141,9 @@ impl<
         Ok(())
     }
 
-    async fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), types::Error> {
+    fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), types::Error> {
         let args = self
             .get_arguments()
-            .await
             .context("failed to call `get-arguments`")
             .map_err(types::Error::trap)?;
         let num = args.len().try_into().map_err(|_| types::Errno::Overflow)?;
@@ -160,13 +156,12 @@ impl<
         Ok((num, len))
     }
 
-    async fn environ_get<'b>(
+    fn environ_get<'b>(
         &mut self,
         environ: &GuestPtr<'b, GuestPtr<'b, u8>>,
         environ_buf: &GuestPtr<'b, u8>,
     ) -> Result<(), types::Error> {
         self.get_environment()
-            .await
             .context("failed to call `get-environment`")
             .map_err(types::Error::trap)?
             .into_iter()
@@ -191,10 +186,9 @@ impl<
         Ok(())
     }
 
-    async fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), types::Error> {
+    fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), types::Error> {
         let environ = self
             .get_environment()
-            .await
             .context("failed to call `get-environment`")
             .map_err(types::Error::trap)?;
         let num = environ
@@ -210,18 +204,13 @@ impl<
         Ok((num, len))
     }
 
-    async fn clock_res_get(
-        &mut self,
-        id: types::Clockid,
-    ) -> Result<types::Timestamp, types::Error> {
+    fn clock_res_get(&mut self, id: types::Clockid) -> Result<types::Timestamp, types::Error> {
         let res = match id {
             types::Clockid::Realtime => wasi::wall_clock::Host::resolution(self)
-                .await
                 .context("failed to call `wall_clock::resolution`")
                 .map_err(types::Error::trap)?
                 .try_into()?,
             types::Clockid::Monotonic => wasi::monotonic_clock::Host::resolution(self)
-                .await
                 .context("failed to call `monotonic_clock::resolution`")
                 .map_err(types::Error::trap)?,
             types::Clockid::ProcessCputimeId | types::Clockid::ThreadCputimeId => {
@@ -231,19 +220,17 @@ impl<
         Ok(res)
     }
 
-    async fn clock_time_get(
+    fn clock_time_get(
         &mut self,
         id: types::Clockid,
         _precision: types::Timestamp,
     ) -> Result<types::Timestamp, types::Error> {
         let now = match id {
             types::Clockid::Realtime => wasi::wall_clock::Host::now(self)
-                .await
                 .context("failed to call `wall_clock::now`")
                 .map_err(types::Error::trap)?
                 .try_into()?,
             types::Clockid::Monotonic => wasi::monotonic_clock::Host::now(self)
-                .await
                 .context("failed to call `monotonic_clock::now`")
                 .map_err(types::Error::trap)?,
             types::Clockid::ProcessCputimeId | types::Clockid::ThreadCputimeId => {
@@ -253,7 +240,7 @@ impl<
         Ok(now)
     }
 
-    async fn fd_advise(
+    fn fd_advise(
         &mut self,
         fd: types::Fd,
         offset: types::Filesize,
@@ -263,7 +250,7 @@ impl<
         todo!()
     }
 
-    async fn fd_allocate(
+    fn fd_allocate(
         &mut self,
         fd: types::Fd,
         _offset: types::Filesize,
@@ -272,19 +259,19 @@ impl<
         todo!()
     }
 
-    async fn fd_close(&mut self, fd: types::Fd) -> Result<(), types::Error> {
+    fn fd_close(&mut self, fd: types::Fd) -> Result<(), types::Error> {
         todo!()
     }
 
-    async fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), types::Error> {
+    fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), types::Error> {
         todo!()
     }
 
-    async fn fd_fdstat_get(&mut self, fd: types::Fd) -> Result<types::Fdstat, types::Error> {
+    fn fd_fdstat_get(&mut self, fd: types::Fd) -> Result<types::Fdstat, types::Error> {
         todo!()
     }
 
-    async fn fd_fdstat_set_flags(
+    fn fd_fdstat_set_flags(
         &mut self,
         fd: types::Fd,
         flags: types::Fdflags,
@@ -292,7 +279,7 @@ impl<
         todo!()
     }
 
-    async fn fd_fdstat_set_rights(
+    fn fd_fdstat_set_rights(
         &mut self,
         fd: types::Fd,
         fs_rights_base: types::Rights,
@@ -301,11 +288,11 @@ impl<
         todo!()
     }
 
-    async fn fd_filestat_get(&mut self, fd: types::Fd) -> Result<types::Filestat, types::Error> {
+    fn fd_filestat_get(&mut self, fd: types::Fd) -> Result<types::Filestat, types::Error> {
         todo!()
     }
 
-    async fn fd_filestat_set_size(
+    fn fd_filestat_set_size(
         &mut self,
         fd: types::Fd,
         size: types::Filesize,
@@ -313,7 +300,7 @@ impl<
         todo!()
     }
 
-    async fn fd_filestat_set_times(
+    fn fd_filestat_set_times(
         &mut self,
         fd: types::Fd,
         atim: types::Timestamp,
@@ -323,7 +310,7 @@ impl<
         todo!()
     }
 
-    async fn fd_read<'a>(
+    fn fd_read<'a>(
         &mut self,
         fd: types::Fd,
         iovs: &types::IovecArray<'a>,
@@ -331,7 +318,7 @@ impl<
         todo!()
     }
 
-    async fn fd_pread<'a>(
+    fn fd_pread<'a>(
         &mut self,
         fd: types::Fd,
         iovs: &types::IovecArray<'a>,
@@ -340,7 +327,7 @@ impl<
         todo!()
     }
 
-    async fn fd_write<'a>(
+    fn fd_write<'a>(
         &mut self,
         fd: types::Fd,
         ciovs: &types::CiovecArray<'a>,
@@ -348,7 +335,7 @@ impl<
         todo!()
     }
 
-    async fn fd_pwrite<'a>(
+    fn fd_pwrite<'a>(
         &mut self,
         fd: types::Fd,
         ciovs: &types::CiovecArray<'a>,
@@ -357,11 +344,11 @@ impl<
         todo!()
     }
 
-    async fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, types::Error> {
+    fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, types::Error> {
         todo!()
     }
 
-    async fn fd_prestat_dir_name<'a>(
+    fn fd_prestat_dir_name<'a>(
         &mut self,
         fd: types::Fd,
         path: &GuestPtr<'a, u8>,
@@ -369,11 +356,11 @@ impl<
     ) -> Result<(), types::Error> {
         todo!()
     }
-    async fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), types::Error> {
+    fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), types::Error> {
         todo!()
     }
 
-    async fn fd_seek(
+    fn fd_seek(
         &mut self,
         fd: types::Fd,
         offset: types::Filedelta,
@@ -382,15 +369,15 @@ impl<
         todo!()
     }
 
-    async fn fd_sync(&mut self, fd: types::Fd) -> Result<(), types::Error> {
+    fn fd_sync(&mut self, fd: types::Fd) -> Result<(), types::Error> {
         todo!()
     }
 
-    async fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, types::Error> {
+    fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, types::Error> {
         todo!()
     }
 
-    async fn fd_readdir<'a>(
+    fn fd_readdir<'a>(
         &mut self,
         fd: types::Fd,
         buf: &GuestPtr<'a, u8>,
@@ -400,7 +387,7 @@ impl<
         todo!()
     }
 
-    async fn path_create_directory<'a>(
+    fn path_create_directory<'a>(
         &mut self,
         dirfd: types::Fd,
         path: &GuestPtr<'a, str>,
@@ -408,7 +395,7 @@ impl<
         todo!()
     }
 
-    async fn path_filestat_get<'a>(
+    fn path_filestat_get<'a>(
         &mut self,
         dirfd: types::Fd,
         flags: types::Lookupflags,
@@ -417,7 +404,7 @@ impl<
         todo!()
     }
 
-    async fn path_filestat_set_times<'a>(
+    fn path_filestat_set_times<'a>(
         &mut self,
         dirfd: types::Fd,
         flags: types::Lookupflags,
@@ -429,7 +416,7 @@ impl<
         todo!()
     }
 
-    async fn path_link<'a>(
+    fn path_link<'a>(
         &mut self,
         src_fd: types::Fd,
         src_flags: types::Lookupflags,
@@ -440,7 +427,7 @@ impl<
         todo!()
     }
 
-    async fn path_open<'a>(
+    fn path_open<'a>(
         &mut self,
         dirfd: types::Fd,
         dirflags: types::Lookupflags,
@@ -453,7 +440,7 @@ impl<
         todo!()
     }
 
-    async fn path_readlink<'a>(
+    fn path_readlink<'a>(
         &mut self,
         dirfd: types::Fd,
         path: &GuestPtr<'a, str>,
@@ -463,7 +450,7 @@ impl<
         todo!()
     }
 
-    async fn path_remove_directory<'a>(
+    fn path_remove_directory<'a>(
         &mut self,
         dirfd: types::Fd,
         path: &GuestPtr<'a, str>,
@@ -471,7 +458,7 @@ impl<
         todo!()
     }
 
-    async fn path_rename<'a>(
+    fn path_rename<'a>(
         &mut self,
         src_fd: types::Fd,
         src_path: &GuestPtr<'a, str>,
@@ -481,7 +468,7 @@ impl<
         todo!()
     }
 
-    async fn path_symlink<'a>(
+    fn path_symlink<'a>(
         &mut self,
         src_path: &GuestPtr<'a, str>,
         dirfd: types::Fd,
@@ -490,7 +477,7 @@ impl<
         todo!()
     }
 
-    async fn path_unlink_file<'a>(
+    fn path_unlink_file<'a>(
         &mut self,
         dirfd: types::Fd,
         path: &GuestPtr<'a, str>,
@@ -498,7 +485,7 @@ impl<
         todo!()
     }
 
-    async fn poll_oneoff<'a>(
+    fn poll_oneoff<'a>(
         &mut self,
         subs: &GuestPtr<'a, types::Subscription>,
         events: &GuestPtr<'a, types::Event>,
@@ -507,41 +494,40 @@ impl<
         todo!()
     }
 
-    async fn proc_exit(&mut self, status: types::Exitcode) -> anyhow::Error {
+    fn proc_exit(&mut self, status: types::Exitcode) -> anyhow::Error {
         let status = match status {
             0 => Ok(()),
             _ => Err(()),
         };
-        match self.exit(status).await {
+        match self.exit(status) {
             Err(e) => e,
             Ok(()) => anyhow!("`exit` did not return an error"),
         }
     }
 
-    async fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), types::Error> {
+    fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), types::Error> {
         Err(types::Errno::Notsup.into())
     }
 
-    async fn sched_yield(&mut self) -> Result<(), types::Error> {
+    fn sched_yield(&mut self) -> Result<(), types::Error> {
         // TODO: This is not yet covered in Preview2.
         Ok(())
     }
 
-    async fn random_get<'a>(
+    fn random_get<'a>(
         &mut self,
         buf: &GuestPtr<'a, u8>,
         buf_len: types::Size,
     ) -> Result<(), types::Error> {
         let rand = self
             .get_random_bytes(buf_len.into())
-            .await
             .context("failed to call `get-random-bytes`")
             .map_err(types::Error::trap)?;
         write_bytes(buf, rand)?;
         Ok(())
     }
 
-    async fn sock_accept(
+    fn sock_accept(
         &mut self,
         fd: types::Fd,
         flags: types::Fdflags,
@@ -549,7 +535,7 @@ impl<
         todo!()
     }
 
-    async fn sock_recv<'a>(
+    fn sock_recv<'a>(
         &mut self,
         fd: types::Fd,
         ri_data: &types::IovecArray<'a>,
@@ -558,7 +544,7 @@ impl<
         todo!()
     }
 
-    async fn sock_send<'a>(
+    fn sock_send<'a>(
         &mut self,
         fd: types::Fd,
         si_data: &types::CiovecArray<'a>,
@@ -567,11 +553,7 @@ impl<
         todo!()
     }
 
-    async fn sock_shutdown(
-        &mut self,
-        fd: types::Fd,
-        how: types::Sdflags,
-    ) -> Result<(), types::Error> {
+    fn sock_shutdown(&mut self, fd: types::Fd, how: types::Sdflags) -> Result<(), types::Error> {
         todo!()
     }
 }
