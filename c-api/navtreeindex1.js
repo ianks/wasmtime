@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"structwasmtime__global.html#a6144329dad36ea25589da25f9ae49e23":[1,0,45,0],
 "structwasmtime__global.html#a6a3167b50406c9224aa77356d3492fef":[1,0,45,1],
 "structwasmtime__instance.html":[1,0,46],
 "structwasmtime__instance.html#a31a02c8ba14a6bafb412c36a397cc0d3":[1,0,46,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "wasm_8h.html#a6c0a5215dad4216d64dc1181c4a7137d":[2,0,1,0,0,310],
 "wasm_8h.html#a6cc706af3ef91e59b5901afa1b6ffe5c":[2,0,1,0,0,336],
 "wasm_8h.html#a6d2221f7db953d637ae1134e91763b26":[2,0,1,0,0,257],
-"wasm_8h.html#a6d64039c0e533cd35eb85eb004948030":[2,0,1,0,0,56],
-"wasm_8h.html#a6fadc5af91eb5011bdbde767b7dc6e91":[2,0,1,0,0,88]
+"wasm_8h.html#a6d64039c0e533cd35eb85eb004948030":[2,0,1,0,0,56]
 };

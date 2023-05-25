@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"wasm_8h.html#a6fadc5af91eb5011bdbde767b7dc6e91":[2,0,1,0,0,88],
 "wasm_8h.html#a71da19c8e53f7f2a464def41ad0fffdc":[2,0,1,0,0,272],
 "wasm_8h.html#a72ae2baf7a6499b374021f9be67634ad":[2,0,1,0,0,304],
 "wasm_8h.html#a7350f39178db2ebc5b509f0b6772f047":[2,0,1,0,0,134],

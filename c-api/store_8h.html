@@ -137,6 +137,9 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><b>wasmtime_context_ge
 <tr class="memitem:ac745fc192368aa7eb9dd43422d1cc012"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="store_8h.html#ac745fc192368aa7eb9dd43422d1cc012">wasmtime_context_fuel_consumed</a> (const <a class="el" href="store_8h.html#a98d503c153853bb098689a122109de81">wasmtime_context_t</a> *context, uint64_t *fuel)</td></tr>
 <tr class="memdesc:ac745fc192368aa7eb9dd43422d1cc012"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the amount of fuel consumed by this context's store execution so far.  <a href="store_8h.html#ac745fc192368aa7eb9dd43422d1cc012">More...</a><br /></td></tr>
 <tr class="separator:ac745fc192368aa7eb9dd43422d1cc012"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89f1a834a6aee8f38dd5a0bf62babd76"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="store_8h.html#a89f1a834a6aee8f38dd5a0bf62babd76">wasmtime_context_fuel_remaining</a> (const <a class="el" href="store_8h.html#a98d503c153853bb098689a122109de81">wasmtime_context_t</a> *context, uint64_t *fuel)</td></tr>
+<tr class="memdesc:a89f1a834a6aee8f38dd5a0bf62babd76"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the amount of fuel remaining in this context's store execution before engine traps execution.  <a href="store_8h.html#a89f1a834a6aee8f38dd5a0bf62babd76">More...</a><br /></td></tr>
+<tr class="separator:a89f1a834a6aee8f38dd5a0bf62babd76"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a571d8086d9e98a9cf7f5bc6ec9308ba3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="error_8h.html#a6df4cddb88cff2bfdeecf8bba560af2c">wasmtime_error_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="store_8h.html#a571d8086d9e98a9cf7f5bc6ec9308ba3">wasmtime_context_consume_fuel</a> (<a class="el" href="store_8h.html#a98d503c153853bb098689a122109de81">wasmtime_context_t</a> *context, uint64_t fuel, uint64_t *remaining)</td></tr>
 <tr class="memdesc:a571d8086d9e98a9cf7f5bc6ec9308ba3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempt to manually consume fuel from the store.  <a href="store_8h.html#a571d8086d9e98a9cf7f5bc6ec9308ba3">More...</a><br /></td></tr>
 <tr class="separator:a571d8086d9e98a9cf7f5bc6ec9308ba3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -252,6 +255,38 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><b>wasmtime_context_ge
 
 <p>Returns the amount of fuel consumed by this context's store execution so far. </p>
 <p >If fuel consumption is not enabled via <a class="el" href="config_8h.html#a8e98544f26a71b68d275f2778e252fb3" title="Whether or not fuel is enabled for generated code.">wasmtime_config_consume_fuel_set</a> then this function will return false. Otherwise true is returned and the fuel parameter is filled in with fuel consumed so far.</p>
+<p >Also note that fuel, if enabled, must be originally configured via <a class="el" href="store_8h.html#a25525b4dba6dfef0ebb323cafbf5320e" title="Adds fuel to this context&#39;s store for wasm to consume while executing.">wasmtime_context_add_fuel</a>. </p>
+
+</div>
+</div>
+<a id="a89f1a834a6aee8f38dd5a0bf62babd76" name="a89f1a834a6aee8f38dd5a0bf62babd76"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89f1a834a6aee8f38dd5a0bf62babd76">&#9670;&nbsp;</a></span>wasmtime_context_fuel_remaining()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool wasmtime_context_fuel_remaining </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="store_8h.html#a98d503c153853bb098689a122109de81">wasmtime_context_t</a> *&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t *&#160;</td>
+          <td class="paramname"><em>fuel</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns the amount of fuel remaining in this context's store execution before engine traps execution. </p>
+<p >If fuel consumption is not enabled via <a class="el" href="config_8h.html#a8e98544f26a71b68d275f2778e252fb3" title="Whether or not fuel is enabled for generated code.">wasmtime_config_consume_fuel_set</a> then this function will return false. Otherwise true is returned and the fuel parameter is filled in with remaining fuel.</p>
 <p >Also note that fuel, if enabled, must be originally configured via <a class="el" href="store_8h.html#a25525b4dba6dfef0ebb323cafbf5320e" title="Adds fuel to this context&#39;s store for wasm to consume while executing.">wasmtime_context_add_fuel</a>. </p>
 
 </div>

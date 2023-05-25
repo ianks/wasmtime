@@ -97,12 +97,44 @@
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{env, process};
 <span class="kw">use </span>wasi_tests::open_scratch_directory;
 
 <span class="kw">unsafe fn </span>test_fd_dir_ops(dir_fd: wasi::Fd) {
     <span class="kw">let </span>stat = wasi::fd_filestat_get(dir_fd).expect(<span class="string">&quot;failed to fdstat&quot;</span>);
     <span class="macro">assert_eq!</span>(stat.filetype, wasi::FILETYPE_DIRECTORY);
+
+    <span class="kw">let </span>(pr_fd, pr_name_len) = (<span class="number">3</span>..)
+        .map_while(|fd| wasi::fd_prestat_get(fd).ok().map(|stat| (fd, stat)))
+        .find_map(|(fd, wasi::Prestat { tag, u })| {
+            (tag == wasi::PREOPENTYPE_DIR.raw()).then_some((fd, u.dir.pr_name_len))
+        })
+        .expect(<span class="string">&quot;failed to find preopen directory&quot;</span>);
+
+    <span class="kw">let </span><span class="kw-2">mut </span>pr_name = <span class="macro">vec!</span>[];
+    <span class="kw">let </span>r = wasi::fd_prestat_dir_name(pr_fd, pr_name.as_mut_ptr(), <span class="number">0</span>);
+    <span class="macro">assert_eq!</span>(r, <span class="prelude-val">Err</span>(wasi::ERRNO_NAMETOOLONG));
+
+    <span class="comment">// Test that passing a larger than necessary buffer works correctly
+    </span><span class="kw">let </span><span class="kw-2">mut </span>pr_name = <span class="macro">vec!</span>[<span class="number">0</span>; pr_name_len + <span class="number">1</span>];
+    <span class="kw">let </span>r = wasi::fd_prestat_dir_name(pr_fd, pr_name.as_mut_ptr(), pr_name_len + <span class="number">1</span>);
+    <span class="macro">assert_eq!</span>(r, <span class="prelude-val">Ok</span>(()));
 
     <span class="kw">let </span><span class="kw-2">mut </span>read_buf = <span class="macro">vec!</span>[<span class="number">0</span>; <span class="number">128</span>].into_boxed_slice();
     <span class="kw">let </span>iovec = wasi::Iovec {

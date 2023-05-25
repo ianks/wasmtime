@@ -1924,7 +1924,7 @@
                 .ok_or_else(|| Error::not_supported())<span class="question-mark">?
                 </span>.as_bytes();
             <span class="kw">let </span>path_len = path_bytes.len();
-            <span class="kw">if </span>path_len &lt; path_max_len <span class="kw">as </span>usize {
+            <span class="kw">if </span>path_len &gt; path_max_len <span class="kw">as </span>usize {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(Error::name_too_long());
             }
             path.as_array(path_len <span class="kw">as </span>u32).copy_from_slice(path_bytes)<span class="question-mark">?</span>;

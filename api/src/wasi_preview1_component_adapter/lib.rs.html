@@ -3127,10 +3127,10 @@
 
 <span class="doccomment">/// Return a description of the given preopened file descriptor.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>fd_prestat_dir_name(fd: Fd, path: <span class="kw-2">*mut </span>u8, path_len: Size) -&gt; Errno {
+</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>fd_prestat_dir_name(fd: Fd, path: <span class="kw-2">*mut </span>u8, path_max_len: Size) -&gt; Errno {
     State::with(|state| {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(preopen) = state.descriptors().get_preopen(fd) {
-            <span class="kw">if </span>preopen.path.len &lt; path_len <span class="kw">as </span>usize {
+            <span class="kw">if </span>preopen.path.len &gt; path_max_len <span class="kw">as </span>usize {
                 <span class="prelude-val">Err</span>(ERRNO_NAMETOOLONG)
             } <span class="kw">else </span>{
                 ptr::copy_nonoverlapping(preopen.path.ptr, path, preopen.path.len);

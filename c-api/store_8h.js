@@ -5,6 +5,7 @@ var store_8h =
     [ "wasmtime_context_add_fuel", "store_8h.html#a25525b4dba6dfef0ebb323cafbf5320e", null ],
     [ "wasmtime_context_consume_fuel", "store_8h.html#a571d8086d9e98a9cf7f5bc6ec9308ba3", null ],
     [ "wasmtime_context_fuel_consumed", "store_8h.html#ac745fc192368aa7eb9dd43422d1cc012", null ],
+    [ "wasmtime_context_fuel_remaining", "store_8h.html#a89f1a834a6aee8f38dd5a0bf62babd76", null ],
     [ "wasmtime_context_gc", "store_8h.html#aaef69cb1f5f7ed9447b78ce2817741c9", null ],
     [ "wasmtime_context_get_data", "store_8h.html#adc6f4b4bc9b94aa84740d9e8155da1f2", null ],
     [ "wasmtime_context_set_data", "store_8h.html#a0f13e0a307a6e13d00d823467b61549e", null ],
