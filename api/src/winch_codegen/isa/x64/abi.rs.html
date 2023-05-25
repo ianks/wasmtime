@@ -354,11 +354,6 @@
 <a href="#354" id="354">354</a>
 <a href="#355" id="355">355</a>
 <a href="#356" id="356">356</a>
-<a href="#357" id="357">357</a>
-<a href="#358" id="358">358</a>
-<a href="#359" id="359">359</a>
-<a href="#360" id="360">360</a>
-<a href="#361" id="361">361</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::regs;
 <span class="kw">use crate</span>::{
     abi::{ABIArg, ABIResult, ABISig, ABI},
@@ -420,15 +415,15 @@
 
 <span class="kw">impl </span>ABI <span class="kw">for </span>X64ABI {
     <span class="comment">// TODO: change to 16 once SIMD is supported
-    </span><span class="kw">fn </span>stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    </span><span class="kw">fn </span>stack_align() -&gt; u8 {
         <span class="number">8
     </span>}
 
-    <span class="kw">fn </span>call_stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    <span class="kw">fn </span>call_stack_align() -&gt; u8 {
         <span class="number">16
     </span>}
 
-    <span class="kw">fn </span>arg_base_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    <span class="kw">fn </span>arg_base_offset() -&gt; u8 {
         <span class="comment">// Two 8-byte slots, one for the return address and another
         // one for the frame pointer.
         // ┌──────────┬───────── Argument base
@@ -457,7 +452,7 @@
         <span class="number">64
     </span>}
 
-    <span class="kw">fn </span>sig(<span class="kw-2">&amp;</span><span class="self">self</span>, wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig {
+    <span class="kw">fn </span>sig(wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig {
         <span class="macro">assert!</span>(call_conv.is_fastcall() || call_conv.is_systemv() || call_conv.is_default());
 
         <span class="kw">if </span>wasm_sig.results().len() &gt; <span class="number">1 </span>{
@@ -613,8 +608,7 @@
     </span><span class="kw">fn </span>int_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([I32, I64, I32, I64, I32, I32, I64, I32], []);
 
-        <span class="kw">let </span>abi = X64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = X64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), I32, regs::rdi());
@@ -631,8 +625,7 @@
     </span><span class="kw">fn </span>float_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, F64, F32, F64, F32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = X64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = X64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::xmm0());
@@ -650,8 +643,7 @@
     </span><span class="kw">fn </span>mixed_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, I32, I64, F64, I32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = X64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = X64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::xmm0());
@@ -669,8 +661,7 @@
     </span><span class="kw">fn </span>system_v_call_conv() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, I32, I64, F64, I32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = X64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::WasmtimeSystemV);
+        <span class="kw">let </span>sig = X64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::WasmtimeSystemV);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::xmm0());
@@ -688,8 +679,7 @@
     </span><span class="kw">fn </span>fastcall_call_conv() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, I32, I64, F64, I32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = X64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::WasmtimeFastcall);
+        <span class="kw">let </span>sig = X64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::WasmtimeFastcall);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::xmm0());

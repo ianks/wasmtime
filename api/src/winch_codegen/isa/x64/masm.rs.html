@@ -280,15 +280,15 @@
 <a href="#280" id="280">280</a>
 <a href="#281" id="281">281</a>
 <a href="#282" id="282">282</a>
-<a href="#283" id="283">283</a>
 </pre><pre class="rust"><code><span class="kw">use super</span>::{
+    abi::X64ABI,
     address::Address,
     asm::{Assembler, Operand},
     regs::{<span class="self">self</span>, rbp, rsp},
 };
 <span class="kw">use </span><span class="kw">crate</span>::masm::{DivKind, MacroAssembler <span class="kw">as </span>Masm, OperandSize, RegImm, RemKind};
 <span class="kw">use crate</span>::{
-    abi::{align_to, calculate_frame_adjustment, LocalSlot},
+    abi::{<span class="self">self</span>, align_to, calculate_frame_adjustment, LocalSlot},
     codegen::CodeGenContext,
     stack::Val,
 };
@@ -328,6 +328,8 @@
 
 <span class="kw">impl </span>Masm <span class="kw">for </span>MacroAssembler {
     <span class="kw">type </span>Address = Address;
+    <span class="kw">type </span>Ptr = u8;
+    <span class="kw">type </span>ABI = X64ABI;
 
     <span class="kw">fn </span>prologue(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let </span>frame_pointer = rbp();
@@ -340,10 +342,7 @@
 
     <span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, reg: Reg) -&gt; u32 {
         <span class="self">self</span>.asm.push_r(reg);
-        <span class="comment">// In x64 the push instruction takes either
-        // 2 or 8 bytes; in our case we&#39;re always
-        // assuming 8 bytes per push.
-        </span><span class="self">self</span>.increment_sp(<span class="number">8</span>);
+        <span class="self">self</span>.increment_sp(&lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::word_bytes());
 
         <span class="self">self</span>.sp_offset
     }
@@ -397,17 +396,16 @@
 
     <span class="kw">fn </span>pop(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dst: Reg) {
         <span class="self">self</span>.asm.pop_r(dst);
-        <span class="comment">// Similar to the comment in `push`, we assume 8 bytes per pop.
-        </span><span class="self">self</span>.decrement_sp(<span class="number">8</span>);
+        <span class="self">self</span>.decrement_sp(&lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::word_bytes());
     }
 
     <span class="kw">fn </span>call(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        alignment: u32,
-        addend: u32,
         stack_args_size: u32,
         <span class="kw-2">mut </span>load_callee: <span class="kw">impl </span>FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; CalleeKind,
     ) -&gt; u32 {
+        <span class="kw">let </span>alignment: u32 = &lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::call_stack_align().into();
+        <span class="kw">let </span>addend: u32 = &lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::arg_base_offset().into();
         <span class="kw">let </span>delta = calculate_frame_adjustment(<span class="self">self</span>.sp_offset(), addend, alignment);
         <span class="kw">let </span>aligned_args_size = align_to(stack_args_size, alignment);
         <span class="kw">let </span>total_stack = delta + aligned_args_size;

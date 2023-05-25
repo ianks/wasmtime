@@ -219,12 +219,16 @@
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
 <a href="#221" id="221">221</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::abi::{align_to, LocalSlot};
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::abi::{<span class="self">self</span>, align_to, LocalSlot};
 <span class="kw">use </span><span class="kw">crate</span>::codegen::CodeGenContext;
 <span class="kw">use </span><span class="kw">crate</span>::isa::reg::Reg;
 <span class="kw">use </span><span class="kw">crate</span>::regalloc::RegAlloc;
 <span class="kw">use </span>cranelift_codegen::{Final, MachBufferFinalized};
 <span class="kw">use </span>std::{fmt::Debug, ops::Range};
+<span class="kw">use </span>wasmtime_environ::PtrSize;
 
 <span class="attr">#[derive(Eq, PartialEq)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>DivKind {
@@ -307,6 +311,13 @@
     <span class="doccomment">/// The addressing mode.
     </span><span class="kw">type </span>Address: Copy;
 
+    <span class="doccomment">/// The pointer representation of the target ISA,
+    /// used to access information from [`VMOffsets`].
+    </span><span class="kw">type </span>Ptr: PtrSize;
+
+    <span class="doccomment">/// The ABI details of the target.
+    </span><span class="kw">type </span>ABI: abi::ABI;
+
     <span class="doccomment">/// Emit the function prologue.
     </span><span class="kw">fn </span>prologue(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
 
@@ -336,13 +347,7 @@
     </span><span class="kw">fn </span>address_at_reg(<span class="kw-2">&amp;</span><span class="self">self</span>, reg: Reg, offset: u32) -&gt; <span class="self">Self</span>::Address;
 
     <span class="doccomment">/// Emit a function call to either a local or external function.
-    </span><span class="kw">fn </span>call(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        alignment: u32,
-        addend: u32,
-        stack_args_size: u32,
-        f: <span class="kw">impl </span>FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; CalleeKind,
-    ) -&gt; u32;
+    </span><span class="kw">fn </span>call(<span class="kw-2">&amp;mut </span><span class="self">self</span>, stack_args_size: u32, f: <span class="kw">impl </span>FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; CalleeKind) -&gt; u32;
 
     <span class="doccomment">/// Get stack pointer offset.
     </span><span class="kw">fn </span>sp_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32;
@@ -398,7 +403,8 @@
     /// The default implementation divides the given memory range
     /// into word-sized slots. Then it unrolls a series of store
     /// instructions, effectively assigning zero to each slot.
-    </span><span class="kw">fn </span>zero_mem_range(<span class="kw-2">&amp;mut </span><span class="self">self</span>, mem: <span class="kw-2">&amp;</span>Range&lt;u32&gt;, word_size: u32, regalloc: <span class="kw-2">&amp;mut </span>RegAlloc) {
+    </span><span class="kw">fn </span>zero_mem_range(<span class="kw-2">&amp;mut </span><span class="self">self</span>, mem: <span class="kw-2">&amp;</span>Range&lt;u32&gt;, regalloc: <span class="kw-2">&amp;mut </span>RegAlloc) {
+        <span class="kw">let </span>word_size = &lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::word_bytes();
         <span class="kw">if </span>mem.is_empty() {
             <span class="kw">return</span>;
         }

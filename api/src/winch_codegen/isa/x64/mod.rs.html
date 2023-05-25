@@ -147,9 +147,6 @@
 <a href="#147" id="147">147</a>
 <a href="#148" id="148">148</a>
 <a href="#149" id="149">149</a>
-<a href="#150" id="150">150</a>
-<a href="#151" id="151">151</a>
-<a href="#152" id="152">152</a>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{
     abi::ABI,
     codegen::{CodeGen, CodeGenContext, FuncEnv},
@@ -248,16 +245,15 @@
         <span class="kw">let </span><span class="kw-2">mut </span>body = body.get_binary_reader();
         <span class="kw">let </span><span class="kw-2">mut </span>masm = X64Masm::new(<span class="self">self</span>.shared_flags.clone(), <span class="self">self</span>.isa_flags.clone());
         <span class="kw">let </span>stack = Stack::new();
-        <span class="kw">let </span>abi = abi::X64ABI::default();
-        <span class="kw">let </span>abi_sig = abi.sig(sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>abi_sig = abi::X64ABI::sig(sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
 
         <span class="kw">let </span>defined_locals = DefinedLocals::new(<span class="kw-2">&amp;mut </span>body, validator)<span class="question-mark">?</span>;
-        <span class="kw">let </span>frame = Frame::new(<span class="kw-2">&amp;</span>abi_sig, <span class="kw-2">&amp;</span>defined_locals, <span class="kw-2">&amp;</span>abi)<span class="question-mark">?</span>;
+        <span class="kw">let </span>frame = Frame::new::&lt;abi::X64ABI&gt;(<span class="kw-2">&amp;</span>abi_sig, <span class="kw-2">&amp;</span>defined_locals)<span class="question-mark">?</span>;
         <span class="comment">// TODO Add in floating point bitmask
         </span><span class="kw">let </span>regalloc = RegAlloc::new(RegSet::new(ALL_GPR, <span class="number">0</span>), regs::scratch());
         <span class="kw">let </span>codegen_context = CodeGenContext::new(regalloc, stack, <span class="kw-2">&amp;</span>frame);
         <span class="kw">let </span>env = FuncEnv::new(<span class="self">self</span>.pointer_bytes(), translation);
-        <span class="kw">let </span><span class="kw-2">mut </span>codegen = CodeGen::new(<span class="kw-2">&amp;mut </span>masm, <span class="kw-2">&amp;</span>abi, codegen_context, env, abi_sig);
+        <span class="kw">let </span><span class="kw-2">mut </span>codegen = CodeGen::new(<span class="kw-2">&amp;mut </span>masm, codegen_context, env, abi_sig);
 
         codegen.emit(<span class="kw-2">&amp;mut </span>body, validator)<span class="question-mark">?</span>;
 
@@ -280,13 +276,11 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;MachBufferFinalized&lt;Final&gt;&gt; {
         <span class="kw">use </span>TrampolineKind::<span class="kw-2">*</span>;
 
-        <span class="kw">let </span>abi = abi::X64ABI::default();
         <span class="kw">let </span><span class="kw-2">mut </span>masm = X64Masm::new(<span class="self">self</span>.shared_flags.clone(), <span class="self">self</span>.isa_flags.clone());
         <span class="kw">let </span>call_conv = <span class="self">self</span>.wasmtime_call_conv();
 
         <span class="kw">let </span><span class="kw-2">mut </span>trampoline = Trampoline::new(
             <span class="kw-2">&amp;mut </span>masm,
-            <span class="kw-2">&amp;</span>abi,
             regs::scratch(),
             regs::argv(),
             <span class="kw-2">&amp;</span>call_conv,

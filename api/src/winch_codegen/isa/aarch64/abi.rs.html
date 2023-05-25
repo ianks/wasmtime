@@ -232,9 +232,6 @@
 <a href="#232" id="232">232</a>
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::regs;
 <span class="kw">use </span><span class="kw">crate</span>::abi::{ABIArg, ABIResult, ABISig, ABI};
 <span class="kw">use </span><span class="kw">crate</span>::isa::{reg::Reg, CallingConvention};
@@ -280,15 +277,15 @@
 
 <span class="kw">impl </span>ABI <span class="kw">for </span>Aarch64ABI {
     <span class="comment">// TODO change to 16 once SIMD is supported
-    </span><span class="kw">fn </span>stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    </span><span class="kw">fn </span>stack_align() -&gt; u8 {
         <span class="number">8
     </span>}
 
-    <span class="kw">fn </span>call_stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    <span class="kw">fn </span>call_stack_align() -&gt; u8 {
         <span class="number">16
     </span>}
 
-    <span class="kw">fn </span>arg_base_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
+    <span class="kw">fn </span>arg_base_offset() -&gt; u8 {
         <span class="number">16
     </span>}
 
@@ -300,7 +297,7 @@
         <span class="number">64
     </span>}
 
-    <span class="kw">fn </span>sig(<span class="kw-2">&amp;</span><span class="self">self</span>, wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig {
+    <span class="kw">fn </span>sig(wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig {
         <span class="macro">assert!</span>(call_conv.is_apple_aarch64() || call_conv.is_default());
 
         <span class="kw">if </span>wasm_sig.results().len() &gt; <span class="number">1 </span>{
@@ -399,8 +396,7 @@
     </span><span class="kw">fn </span>xreg_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([I32, I64, I32, I64, I32, I32, I64, I32, I64], []);
 
-        <span class="kw">let </span>abi = Aarch64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = Aarch64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), I32, regs::xreg(<span class="number">0</span>));
@@ -418,8 +414,7 @@
     </span><span class="kw">fn </span>vreg_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, F64, F32, F64, F32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = Aarch64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = Aarch64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::vreg(<span class="number">0</span>));
@@ -437,8 +432,7 @@
     </span><span class="kw">fn </span>mixed_abi_sig() {
         <span class="kw">let </span>wasm_sig = FuncType::new([F32, I32, I64, F64, I32, F32, F64, F32, F64], []);
 
-        <span class="kw">let </span>abi = Aarch64ABI::default();
-        <span class="kw">let </span>sig = abi.sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
+        <span class="kw">let </span>sig = Aarch64ABI::sig(<span class="kw-2">&amp;</span>wasm_sig, <span class="kw-2">&amp;</span>CallingConvention::Default);
         <span class="kw">let </span>params = sig.params;
 
         match_reg_arg(params.get(<span class="number">0</span>).unwrap(), F32, regs::vreg(<span class="number">0</span>));

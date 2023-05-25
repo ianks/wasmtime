@@ -224,14 +224,14 @@
 <a href="#224" id="224">224</a>
 <a href="#225" id="225">225</a>
 <a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
 </pre><pre class="rust"><code><span class="kw">use super</span>::{
+    abi::Aarch64ABI,
     address::Address,
     asm::{Assembler, Operand},
     regs,
 };
 <span class="kw">use crate</span>::{
-    abi::local::LocalSlot,
+    abi::{<span class="self">self</span>, local::LocalSlot},
     codegen::CodeGenContext,
     isa::reg::Reg,
     masm::{CalleeKind, DivKind, MacroAssembler <span class="kw">as </span>Masm, OperandSize, RegImm, RemKind},
@@ -281,6 +281,8 @@
 
 <span class="kw">impl </span>Masm <span class="kw">for </span>MacroAssembler {
     <span class="kw">type </span>Address = Address;
+    <span class="kw">type </span>Ptr = u8;
+    <span class="kw">type </span>ABI = Aarch64ABI;
 
     <span class="kw">fn </span>prologue(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let </span>lr = regs::lr();
@@ -365,8 +367,6 @@
 
     <span class="kw">fn </span>call(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        _alignment: u32,
-        _addend: u32,
         _stack_args_size: u32,
         _load_callee: <span class="kw">impl </span>FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; CalleeKind,
     ) -&gt; u32 {
@@ -418,9 +418,7 @@
     }
 
     <span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, reg: Reg) -&gt; u32 {
-        <span class="comment">// The push is counted as pushing the 64-bit width in
-        // 64-bit architectures.
-        </span><span class="kw">let </span>size = <span class="number">8u32</span>;
+        <span class="kw">let </span>size = &lt;<span class="self">Self</span>::ABI <span class="kw">as </span>abi::ABI&gt;::word_bytes();
         <span class="self">self</span>.reserve_stack(size);
         <span class="kw">let </span>address = Address::from_shadow_sp(size <span class="kw">as </span>i64);
         <span class="self">self</span>.asm.str(reg, address, OperandSize::S64);

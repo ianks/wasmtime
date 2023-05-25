@@ -214,26 +214,6 @@
 <a href="#214" id="214">214</a>
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{
     abi::{ABISig, ABI},
     masm::{MacroAssembler, OperandSize},
@@ -245,7 +225,7 @@
 <span class="kw">use </span>wasmparser::{
     BinaryReader, FuncType, FuncValidator, ValType, ValidatorResources, VisitOperator,
 };
-<span class="kw">use </span>wasmtime_environ::{FuncIndex, PtrSize};
+<span class="kw">use </span>wasmtime_environ::FuncIndex;
 
 <span class="kw">mod </span>context;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>context::<span class="kw-2">*</span>;
@@ -254,11 +234,9 @@
 <span class="kw">pub mod </span>call;
 
 <span class="doccomment">/// The code generation abstraction.
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>CodeGen&lt;<span class="lifetime">&#39;a</span>, A, M, P&gt;
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>CodeGen&lt;<span class="lifetime">&#39;a</span>, M&gt;
 <span class="kw">where
     </span>M: MacroAssembler,
-    A: ABI,
-    P: PtrSize,
 {
     <span class="doccomment">/// The ABI-specific representation of the function signature, excluding results.
     </span>sig: ABISig,
@@ -267,33 +245,26 @@
     </span><span class="kw">pub </span>context: CodeGenContext&lt;<span class="lifetime">&#39;a</span>&gt;,
 
     <span class="doccomment">/// A reference to the function compilation environment.
-    </span><span class="kw">pub </span>env: FuncEnv&lt;<span class="lifetime">&#39;a</span>, P&gt;,
+    </span><span class="kw">pub </span>env: FuncEnv&lt;<span class="lifetime">&#39;a</span>, M::Ptr&gt;,
 
     <span class="doccomment">/// The MacroAssembler.
     </span><span class="kw">pub </span>masm: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>M,
-
-    <span class="doccomment">/// A reference to the current ABI.
-    </span><span class="kw">pub </span>abi: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, M, P&gt; CodeGen&lt;<span class="lifetime">&#39;a</span>, A, M, P&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, M&gt; CodeGen&lt;<span class="lifetime">&#39;a</span>, M&gt;
 <span class="kw">where
     </span>M: MacroAssembler,
-    A: ABI,
-    P: PtrSize,
 {
     <span class="kw">pub fn </span>new(
         masm: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>M,
-        abi: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A,
         context: CodeGenContext&lt;<span class="lifetime">&#39;a</span>&gt;,
-        env: FuncEnv&lt;<span class="lifetime">&#39;a</span>, P&gt;,
+        env: FuncEnv&lt;<span class="lifetime">&#39;a</span>, M::Ptr&gt;,
         sig: ABISig,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             sig,
             context,
             masm,
-            abi,
             env,
         }
     }
@@ -325,17 +296,17 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="self">self</span>.spill_register_arguments();
         <span class="kw">let </span>defined_locals_range = <span class="kw-2">&amp;</span><span class="self">self</span>.context.frame.defined_locals_range;
-        <span class="self">self</span>.masm.zero_mem_range(
-            defined_locals_range.as_range(),
-            &lt;A <span class="kw">as </span>ABI&gt;::word_bytes(),
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.context.regalloc,
-        );
+        <span class="self">self</span>.masm
+            .zero_mem_range(defined_locals_range.as_range(), <span class="kw-2">&amp;mut </span><span class="self">self</span>.context.regalloc);
 
         <span class="comment">// Save the vmctx pointer to its local slot in case we need to reload it
         // at any point.
         </span><span class="kw">let </span>vmctx_addr = <span class="self">self</span>.masm.local_address(<span class="kw-2">&amp;</span><span class="self">self</span>.context.frame.vmctx_slot);
-        <span class="self">self</span>.masm
-            .store(&lt;A <span class="kw">as </span>ABI&gt;::vmctx_reg().into(), vmctx_addr, OperandSize::S64);
+        <span class="self">self</span>.masm.store(
+            &lt;M::ABI <span class="kw">as </span>ABI&gt;::vmctx_reg().into(),
+            vmctx_addr,
+            OperandSize::S64,
+        );
 
         <span class="kw">while </span>!body.eof() {
             <span class="kw">let </span>offset = body.original_position();
@@ -377,7 +348,7 @@
             params.extend_from_slice(<span class="kw-2">&amp;</span>callee.ty.params());
             <span class="kw">let </span>sig = FuncType::new(params, callee.ty.results().to_owned());
 
-            <span class="kw">let </span>caller_vmctx = &lt;A <span class="kw">as </span>ABI&gt;::vmctx_reg();
+            <span class="kw">let </span>caller_vmctx = &lt;M::ABI <span class="kw">as </span>ABI&gt;::vmctx_reg();
             <span class="kw">let </span>callee_vmctx = <span class="self">self</span>.context.any_gpr(<span class="self">self</span>.masm);
             <span class="kw">let </span>callee_vmctx_offset = <span class="self">self</span>.env.vmoffsets.vmctx_vmfunction_import_vmctx(index);
             <span class="kw">let </span>callee_vmctx_addr = <span class="self">self</span>.masm.address_at_reg(caller_vmctx, callee_vmctx_offset);
@@ -397,32 +368,21 @@
             stack.insert(location <span class="kw">as </span>usize, Val::reg(caller_vmctx));
             stack.insert(location <span class="kw">as </span>usize, Val::reg(callee_vmctx));
             (
-                <span class="self">self</span>.abi.sig(<span class="kw-2">&amp;</span>sig, <span class="kw-2">&amp;</span>CallingConvention::Default),
+                &lt;M::ABI <span class="kw">as </span>ABI&gt;::sig(<span class="kw-2">&amp;</span>sig, <span class="kw-2">&amp;</span>CallingConvention::Default),
                 <span class="prelude-val">Some</span>(callee_addr),
             )
         } <span class="kw">else </span>{
-            (<span class="self">self</span>.abi.sig(<span class="kw-2">&amp;</span>callee.ty, <span class="kw-2">&amp;</span>CallingConvention::Default), <span class="prelude-val">None</span>)
+            (
+                &lt;M::ABI <span class="kw">as </span>ABI&gt;::sig(<span class="kw-2">&amp;</span>callee.ty, <span class="kw-2">&amp;</span>CallingConvention::Default),
+                <span class="prelude-val">None</span>,
+            )
         };
 
-        <span class="kw">let </span>fncall = FnCall::new::&lt;A, M&gt;(<span class="kw-2">&amp;</span>sig, <span class="kw-2">&amp;mut </span><span class="self">self</span>.context, <span class="self">self</span>.masm);
-        <span class="kw">let </span>alignment = <span class="self">self</span>.abi.call_stack_align();
-        <span class="kw">let </span>addend = <span class="self">self</span>.abi.arg_base_offset();
+        <span class="kw">let </span>fncall = FnCall::new::&lt;M&gt;(<span class="kw-2">&amp;</span>sig, <span class="kw-2">&amp;mut </span><span class="self">self</span>.context, <span class="self">self</span>.masm);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(addr) = callee_addr {
-            fncall.indirect::&lt;M, A&gt;(
-                <span class="self">self</span>.masm,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.context,
-                addr,
-                alignment.into(),
-                addend.into(),
-            );
+            fncall.indirect::&lt;M&gt;(<span class="self">self</span>.masm, <span class="kw-2">&amp;mut </span><span class="self">self</span>.context, addr);
         } <span class="kw">else </span>{
-            fncall.direct::&lt;M, A&gt;(
-                <span class="self">self</span>.masm,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.context,
-                index,
-                alignment.into(),
-                addend.into(),
-            );
+            fncall.direct::&lt;M&gt;(<span class="self">self</span>.masm, <span class="kw-2">&amp;mut </span><span class="self">self</span>.context, index);
         }
     }
 

@@ -293,20 +293,20 @@
 /// specific registers, etc.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>ABI {
     <span class="doccomment">/// The required stack alignment.
-    </span><span class="kw">fn </span>stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
+    </span><span class="kw">fn </span>stack_align() -&gt; u8;
 
     <span class="doccomment">/// The required stack alignment for calls.
-    </span><span class="kw">fn </span>call_stack_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
+    </span><span class="kw">fn </span>call_stack_align() -&gt; u8;
 
     <span class="doccomment">/// The offset to the argument base, relative to the frame pointer.
-    </span><span class="kw">fn </span>arg_base_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
+    </span><span class="kw">fn </span>arg_base_offset() -&gt; u8;
 
     <span class="doccomment">/// The offset to the return address, relative to the frame pointer.
     </span><span class="kw">fn </span>ret_addr_offset() -&gt; u8;
 
     <span class="doccomment">/// Construct the ABI-specific signature from a WebAssembly
     /// function type.
-    </span><span class="kw">fn </span>sig(<span class="kw-2">&amp;</span><span class="self">self</span>, wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig;
+    </span><span class="kw">fn </span>sig(wasm_sig: <span class="kw-2">&amp;</span>FuncType, call_conv: <span class="kw-2">&amp;</span>CallingConvention) -&gt; ABISig;
 
     <span class="doccomment">/// Returns the number of bits in a word.
     </span><span class="kw">fn </span>word_bits() -&gt; u32;
